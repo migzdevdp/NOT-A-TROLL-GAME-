@@ -25,8 +25,11 @@
   <!-- GAME SCREEN -->
   <div id="game-screen" class="screen hidden">
     <div id="hud">
-      <button id="menu-btn" class="hud-btn">❚❚</button>
-      <span>STAGE <b id="lvl-display">1</b>/20</span>
+      <div style="display: flex; gap: 8px; pointer-events: auto;">
+        <button id="menu-btn" class="hud-btn">❚❚</button>
+        <button id="reset-btn" class="hud-btn">↻</button>
+      </div>
+      <span>STAGE <b id="lvl-display">1</b>/30</span>
       <span>DEATHS: <b id="death-display">0</b></span>
     </div>
 
@@ -35,7 +38,7 @@
     <!-- CUSTOM RETRO VICTORY SCREEN -->
     <div id="victory-modal" class="hidden">
       <div class="title-box">
-        <h1>ALL 20 STAGES CLEARED!</h1>
+        <h1>ALL 30 STAGES CLEARED!</h1>
         <p class="dev-credit">Total Deaths: <span id="final-deaths">0</span></p>
         <p class="dev-credit" style="font-size: 13px;">Not A Troll Game (Totally Safe) by Migz</p>
         <button id="replay-btn" class="ld-btn">PLAY AGAIN</button>

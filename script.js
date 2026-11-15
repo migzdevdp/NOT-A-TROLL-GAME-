@@ -7,6 +7,7 @@ const victoryModal = document.getElementById("victory-modal");
 const playBtn = document.getElementById("play-btn");
 const replayBtn = document.getElementById("replay-btn");
 const menuBtn = document.getElementById("menu-btn");
+const resetBtn = document.getElementById("reset-btn");
 const lvlDisplay = document.getElementById("lvl-display");
 const deathDisplay = document.getElementById("death-display");
 const finalDeathsDisplay = document.getElementById("final-deaths");
@@ -88,6 +89,12 @@ menuBtn.addEventListener("click", () => {
   titleScreen.classList.remove("hidden");
 });
 
+resetBtn.addEventListener("click", () => {
+  if (!stageClearing) {
+    die();
+  }
+});
+
 function updateHUD() {
   lvlDisplay.innerText = currentStage;
   deathDisplay.innerText = deaths;
@@ -111,7 +118,7 @@ function nextStage() {
 
   setTimeout(() => {
     stageClearing = false;
-    if (currentStage < 20) {
+    if (currentStage < 30) {
       currentStage++;
       updateHUD();
       loadStage(currentStage);
@@ -121,7 +128,6 @@ function nextStage() {
     }
   }, 750);
 }
-
 function loadStage(stage) {
   player.x = 60;
   player.y = 260;
@@ -137,7 +143,10 @@ function loadStage(stage) {
   spikes = [];
   doors = [];
   saws = [];
-  trapState = { triggered: false, reversed: false, gravFlipped: false };
+  trapState = { triggered: false, reversed: false, gravFlipped: false, lightsOut: false, fakeWin: false, teleCount: 0 };
+
+  const dpad = document.querySelector(".dpad");
+  if (dpad) dpad.style.flexDirection = "row";
 
   platforms.push({ x: 0, y: 0, w: 800, h: 30, solid: true });
 
@@ -255,6 +264,66 @@ function loadStage(stage) {
       spikes.push({ id: "s20", x: 560, y: 320, w: 30, h: 20, dir: "up" });
       doors.push({ id: "d20", x: 710, y: 265, w: 36, h: 55, real: true });
       break;
+    case 21:
+      platforms.push({ x: 0, y: 320, w: 220, h: 80, solid: true });
+      platforms.push({ id: "inv21", x: 250, y: 320, w: 280, h: 80, solid: true, invisible: true });
+      platforms.push({ id: "end21", x: 560, y: 320, w: 240, h: 80, solid: true });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 22:
+      platforms.push({ x: 0, y: 320, w: 340, h: 80, solid: true });
+      platforms.push({ x: 430, y: 320, w: 370, h: 80, solid: true });
+      spikes.push({ x: 550, y: 300, w: 30, h: 20, dir: "up" });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 23:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      spikes.push({ x: 280, y: 300, w: 35, h: 20, dir: "up" });
+      spikes.push({ x: 510, y: 300, w: 35, h: 20, dir: "up" });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 24:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ id: "bounce24", x: 340, y: 305, w: 90, h: 15, solid: true });
+      spikes.push({ x: 280, y: 30, w: 220, h: 25, dir: "down" });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 25:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ id: "ceil25", x: 540, y: 30, w: 140, h: 60, solid: true, deadly: false });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 26:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ id: "wall26_l", x: 0, y: 30, w: 20, h: 290, solid: true });
+      platforms.push({ id: "wall26_r", x: 780, y: 30, w: 20, h: 290, solid: true });
+      spikes.push({ x: 380, y: 300, w: 35, h: 20, dir: "up" });
+      doors.push({ x: 690, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 27:
+      platforms.push({ x: 0, y: 320, w: 260, h: 80, solid: true });
+      platforms.push({ x: 520, y: 320, w: 280, h: 80, solid: true });
+      spikes.push({ x: 360, y: 30, w: 80, h: 20, dir: "down" });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 28:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ x: 330, y: 215, w: 140, h: 25, solid: true });
+      doors.push({ id: "d28", x: 700, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 29:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      saws.push({ id: "saw29_1", x: 250, y: -30, r: 22, angle: 0 });
+      saws.push({ id: "saw29_2", x: 430, y: -30, r: 22, angle: 0 });
+      saws.push({ id: "saw29_3", x: 600, y: -30, r: 22, angle: 0 });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 30:
+      platforms.push({ x: 0, y: 320, w: 320, h: 80, solid: true });
+      platforms.push({ x: 410, y: 320, w: 390, h: 80, solid: true });
+      spikes.push({ x: 520, y: 300, w: 30, h: 20, dir: "up" });
+      doors.push({ id: "d30", x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
   }
 }
 function updateTraps() {
@@ -350,7 +419,12 @@ function updateTraps() {
       break;
     case 15:
       if (player.x > 250 && player.x < 350 && player.grounded && !trapState.triggered) {
-        trapState.triggered = true; player.w = 52; player.h = 68; player.y -= 32; playSound(220, 0.2);
+        trapState.triggered = true;
+        player.w = 52;
+        player.h = 68;
+        player.y -= 32;
+        playSound(220, 0.2);
+        setTimeout(() => { if (currentStage === 15) die(); }, 1200);
       }
       break;
     case 16:
@@ -389,9 +463,85 @@ function updateTraps() {
       if (player.x > 480 && s20 && s20.y > 300) s20.y -= 6;
       if (player.x > 620 && d20 && d20.x > 520) d20.x -= 9;
       break;
+    case 21:
+      let end21 = platforms.find(p => p.id === "end21");
+      if (player.x > 520 && end21 && end21.x < 660) { end21.x += 7; end21.w -= 7; }
+      break;
+    case 22:
+      if (player.x > 250 && !trapState.reversed) {
+        trapState.reversed = true;
+        playSound(250, 0.2);
+        const dpad = document.querySelector(".dpad");
+        if (dpad) dpad.style.flexDirection = "row-reverse";
+      }
+      break;
+    case 23:
+      if (player.x > 140) trapState.lightsOut = true;
+      break;
+    case 24:
+      let b24 = platforms.find(p => p.id === "bounce24");
+      if (b24 && rectIntersect(player, { x: b24.x, y: b24.y - 4, w: b24.w, h: 10 })) {
+        player.vy = -19;
+        playSound(600, 0.15);
+      }
+      break;
+    case 25:
+      let ceil25 = platforms.find(p => p.id === "ceil25");
+      if (player.x > 480 && !trapState.triggered) {
+        trapState.triggered = true;
+        trapState.fakeWin = true;
+        playWinSound();
+        setTimeout(() => { trapState.fakeWin = false; }, 900);
+      }
+      if (trapState.triggered && ceil25 && ceil25.y < 260) {
+        ceil25.y += 9;
+        if (rectIntersect(player, ceil25)) die();
+      }
+      break;
+    case 26:
+      let w26L = platforms.find(p => p.id === "wall26_l");
+      let w26R = platforms.find(p => p.id === "wall26_r");
+      if (player.x > 150) trapState.triggered = true;
+      if (trapState.triggered && w26L && w26R) {
+        if (w26L.w < 220) w26L.w += 2.2;
+        if (w26R.x > 730) { w26R.x -= 2.2; w26R.w += 2.2; }
+      }
+      break;
+    case 27:
+      if (player.x > 220 && !trapState.gravFlipped) {
+        trapState.gravFlipped = true; player.gravity = -0.55; player.jumpForce = 11.5; playSound(550, 0.2);
+      }
+      if (player.x > 470 && trapState.gravFlipped) {
+        trapState.gravFlipped = false; player.gravity = 0.55; player.jumpForce = -11.5; playSound(350, 0.2);
+      }
+      break;
+    case 28:
+      let d28 = doors.find(d => d.id === "d28");
+      if (d28 && Math.hypot(player.x - d28.x, player.y - d28.y) < 75 && trapState.teleCount < 3) {
+        trapState.teleCount++;
+        playSound(500, 0.1);
+        if (trapState.teleCount === 1) { d28.x = 380; d28.y = 160; }
+        else if (trapState.teleCount === 2) { d28.x = 80; d28.y = 265; }
+        else if (trapState.teleCount === 3) { d28.x = 700; d28.y = 265; }
+      }
+      break;
+    case 29:
+      let s29_1 = saws.find(s => s.id === "saw29_1");
+      let s29_2 = saws.find(s => s.id === "saw29_2");
+      let s29_3 = saws.find(s => s.id === "saw29_3");
+      if (player.x > 160 && s29_1 && s29_1.y < 315) { s29_1.y += 9; s29_1.angle += 0.2; }
+      if (player.x > 340 && s29_2 && s29_2.y < 315) { s29_2.y += 10; s29_2.angle += 0.2; }
+      if (player.x > 510 && s29_3 && s29_3.y < 315) { s29_3.y += 11; s29_3.angle += 0.2; }
+      break;
+    case 30:
+      let d30 = doors.find(d => d.id === "d30");
+      if (player.x > 220 && !trapState.reversed) {
+        trapState.reversed = true; trapState.lightsOut = true; playSound(250, 0.2);
+      }
+      if (player.x > 610 && d30 && d30.x > 480) d30.x -= 8;
+      break;
   }
 }
-
 function update() {
   animFrame++;
   if (stageClearing) {
@@ -466,7 +616,6 @@ function update() {
 function rectIntersect(r1, r2) {
   return !(r2.x >= r1.x + r1.w || r2.x + r2.w <= r1.x || r2.y >= r1.y + r1.h || r2.y + r2.h <= r1.y);
 }
-
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -550,6 +699,28 @@ function draw() {
     ctx.fillRect(player.x + player.w - 11, player.y + legOffset, 5, 8);
   }
   ctx.restore();
+
+  if (trapState.lightsOut) {
+    ctx.save();
+    ctx.fillStyle = "#1c0d08";
+    ctx.beginPath();
+    ctx.rect(0, 0, canvas.width, canvas.height);
+    ctx.arc(player.x + player.w / 2, player.y + player.h / 2, 95, 0, Math.PI * 2, true);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  if (trapState.fakeWin) {
+    ctx.fillStyle = "#f3a86b";
+    ctx.fillRect(200, 120, 400, 100);
+    ctx.strokeStyle = "#26120b";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(200, 120, 400, 100);
+    ctx.fillStyle = "#3b2016";
+    ctx.font = "bold 22px Courier New";
+    ctx.textAlign = "center";
+    ctx.fillText("ALL 30 STAGES CLEARED!", 400, 178);
+  }
 }
 
 function gameLoop() {
