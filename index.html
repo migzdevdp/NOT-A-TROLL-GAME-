@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Not A Troll Game (Totally Safe)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="rotate-warning">
+    <p>↻ I-rotate ang cellphone sa Landscape mode para maglaro!</p>
+  </div>
+
+  <!-- TITLE SCREEN -->
+  <div id="title-screen" class="screen">
+    <div class="title-box">
+      <h1>Not A Troll Game (Totally Safe)</h1>
+      <p class="dev-credit">by Migz</p>
+      <button id="play-btn" class="ld-btn">PLAY</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="screen hidden">
+    <div id="hud">
+      <button id="menu-btn" class="hud-btn">❚❚</button>
+      <span>STAGE <b id="lvl-display">1</b>/20</span>
+      <span>DEATHS: <b id="death-display">0</b></span>
+    </div>
+
+    <canvas id="game-canvas" width="800" height="400"></canvas>
+
+    <!-- CUSTOM RETRO VICTORY SCREEN -->
+    <div id="victory-modal" class="hidden">
+      <div class="title-box">
+        <h1>ALL 20 STAGES CLEARED!</h1>
+        <p class="dev-credit">Total Deaths: <span id="final-deaths">0</span></p>
+        <p class="dev-credit" style="font-size: 13px;">Not A Troll Game (Totally Safe) by Migz</p>
+        <button id="replay-btn" class="ld-btn">PLAY AGAIN</button>
+      </div>
+    </div>
+
+    <!-- MOBILE TOUCH CONTROLS -->
+    <div id="touch-controls">
+      <div class="dpad">
+        <button id="btn-left" class="ctrl-btn">◀</button>
+        <button id="btn-right" class="ctrl-btn">▶</button>
+      </div>
+      <div class="action-pad">
+        <button id="btn-jump" class="ctrl-btn">▲</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

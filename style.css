@@ -1,0 +1,190 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+body {
+  background-color: #3b2016; /* Level Devil Dark Brown */
+  color: #f3a86b; /* Level Devil Warm Tan/Orange */
+  font-family: 'Courier New', Courier, monospace;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Portrait Warning */
+#rotate-warning {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: #3b2016;
+  color: #f3a86b;
+  z-index: 999;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+@media screen and (orientation: portrait) {
+  #rotate-warning {
+    display: flex;
+  }
+}
+
+/* Title Screen */
+.title-box {
+  background-color: #f3a86b;
+  color: #3b2016;
+  padding: 30px 40px;
+  border: 6px solid #26120b;
+  text-align: center;
+  box-shadow: 0 8px 0 #26120b;
+}
+
+.title-box h1 {
+  font-size: 26px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.dev-credit {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 24px;
+}
+
+.ld-btn {
+  background-color: #3b2016;
+  color: #f3a86b;
+  border: none;
+  padding: 12px 36px;
+  font-size: 22px;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 5px 0 #26120b;
+}
+
+.ld-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #26120b;
+}
+
+/* Game Screen & Canvas */
+#hud {
+  position: absolute;
+  top: 12px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: #ffffff; /* Pure White para super linaw */
+  text-shadow: 2px 2px 0 #1c0d08, -1px -1px 0 #1c0d08, 1px -1px 0 #1c0d08, -1px 1px 0 #1c0d08; /* Dark outline sa text */
+  z-index: 10;
+  pointer-events: none;
+}
+
+#hud span {
+  background-color: rgba(28, 13, 8, 0.8); /* Dark badge sa likod ng text */
+  padding: 5px 12px;
+  border: 2px solid #f3a86b;
+  border-radius: 6px;
+}
+
+
+
+.hud-btn {
+  pointer-events: auto;
+  background-color: #3b2016;
+  color: #f3a86b;
+  border: 2px solid #f3a86b;
+  padding: 4px 10px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+#game-canvas {
+  background-color: #f3a86b;
+  border: 6px solid #26120b;
+  width: 100%;
+  height: 100%;
+  max-width: 900px;
+  max-height: 450px;
+  object-fit: contain;
+}
+
+/* Mobile Touch Controls */
+#touch-controls {
+  position: absolute;
+  bottom: 15px;
+  left: 25px;
+  right: 25px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.dpad {
+  display: flex;
+  gap: 15px;
+}
+
+.ctrl-btn {
+  pointer-events: auto;
+  width: 68px;
+  height: 68px;
+  background-color: rgba(59, 32, 22, 0.75);
+  color: #f3a86b;
+  border: 3px solid #f3a86b;
+  border-radius: 10px;
+  font-size: 26px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ctrl-btn:active {
+  background-color: #3b2016;
+  transform: scale(0.95);
+}
+/* Custom Victory Screen Overlay */
+#victory-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(28, 13, 8, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
