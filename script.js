@@ -4,10 +4,18 @@ const ctx = canvas.getContext("2d");
 const titleScreen = document.getElementById("title-screen");
 const gameScreen = document.getElementById("game-screen");
 const victoryModal = document.getElementById("victory-modal");
+const stageSelectModal = document.getElementById("stage-select-modal");
+const stageGrid = document.getElementById("stage-grid");
+
 const playBtn = document.getElementById("play-btn");
 const replayBtn = document.getElementById("replay-btn");
+const stagesBtn = document.getElementById("stages-btn");
+const hudStagesBtn = document.getElementById("hud-stages-btn");
+const winStagesBtn = document.getElementById("win-stages-btn");
+const closeStagesBtn = document.getElementById("close-stages-btn");
 const menuBtn = document.getElementById("menu-btn");
 const resetBtn = document.getElementById("reset-btn");
+
 const lvlDisplay = document.getElementById("lvl-display");
 const deathDisplay = document.getElementById("death-display");
 const finalDeathsDisplay = document.getElementById("final-deaths");
@@ -34,11 +42,18 @@ function playWinSound() {
 }
 
 let currentStage = 1;
+let maxUnlockedStage = parseInt(localStorage.getItem("ntg_unlocked_stage")) || 1;
 let deaths = 0;
 let gameRunning = false;
 let animFrame = 0;
 let stageClearing = false;
 let doorOpenProgress = 0;
+
+let isDying = false;
+let deathTimer = 0;
+let shakeTime = 0;
+let shakeIntensity = 0;
+let deathParticles = [];
 
 const input = { left: false, right: false, jump: false };
 
@@ -58,17 +73,60 @@ let doors = [];
 let saws = [];
 let trapState = {};
 
-function startNewRun() {
+function saveUnlockedStage(stageNum) {
+  if (stageNum > maxUnlockedStage) {
+    maxUnlockedStage = Math.min(40, stageNum);
+    localStorage.setItem("ntg_unlocked_stage", maxUnlockedStage);
+  }
+}
+
+function renderStageGrid() {
+  stageGrid.innerHTML = "";
+  for (let i = 1; i <= 40; i++) {
+    const btn = document.createElement("button");
+    btn.className = "stage-tile";
+    if (i <= maxUnlockedStage) {
+      btn.innerText = i;
+      if (i < maxUnlockedStage) {
+        btn.classList.add("cleared");
+      } else {
+        btn.classList.add("current-unlocked");
+      }
+      btn.addEventListener("click", () => {
+        stageSelectModal.classList.add("hidden");
+        startAtStage(i);
+      });
+    } else {
+      btn.innerText = "🔒";
+      btn.disabled = true;
+    }
+    stageGrid.appendChild(btn);
+  }
+}
+
+function openStageSelect() {
+  playSound(450, 0.08);
+  input.left = false;
+  input.right = false;
+  input.jump = false;
+  renderStageGrid();
+  stageSelectModal.classList.remove("hidden");
+}
+
+function startAtStage(stageNumber) {
   playSound(500, 0.15);
   titleScreen.classList.add("hidden");
   victoryModal.classList.add("hidden");
+  stageSelectModal.classList.add("hidden");
   gameScreen.classList.remove("hidden");
   input.left = false;
   input.right = false;
   input.jump = false;
-  currentStage = 1;
+  currentStage = stageNumber;
   deaths = 0;
   stageClearing = false;
+  isDying = false;
+  deathParticles = [];
   updateHUD();
   loadStage(currentStage);
   if (!gameRunning) {
@@ -77,8 +135,20 @@ function startNewRun() {
   }
 }
 
+function startNewRun() {
+  startAtStage(1);
+}
+
 playBtn.addEventListener("click", startNewRun);
 replayBtn.addEventListener("click", startNewRun);
+stagesBtn.addEventListener("click", openStageSelect);
+hudStagesBtn.addEventListener("click", openStageSelect);
+winStagesBtn.addEventListener("click", openStageSelect);
+
+closeStagesBtn.addEventListener("click", () => {
+  playSound(350, 0.08);
+  stageSelectModal.classList.add("hidden");
+});
 
 menuBtn.addEventListener("click", () => {
   input.left = false;
@@ -86,11 +156,12 @@ menuBtn.addEventListener("click", () => {
   input.jump = false;
   gameScreen.classList.add("hidden");
   victoryModal.classList.add("hidden");
+  stageSelectModal.classList.add("hidden");
   titleScreen.classList.remove("hidden");
 });
 
 resetBtn.addEventListener("click", () => {
-  if (!stageClearing) {
+  if (!stageClearing && !isDying) {
     die();
   }
 });
@@ -100,25 +171,58 @@ function updateHUD() {
   deathDisplay.innerText = deaths;
 }
 
+function spawnDeathParticles() {
+  deathParticles = [];
+  const colors = ["#1c0d08", "#1c0d08", "#b32419", "#d93829", "#3b2016"];
+  const centerX = player.x + player.w / 2;
+  const centerY = player.y + player.h / 2;
+
+  for (let i = 0; i < 28; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 6.5;
+    deathParticles.push({
+      x: centerX + (Math.random() - 0.5) * player.w,
+      y: centerY + (Math.random() - 0.5) * player.h,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2.5,
+      size: 4 + Math.random() * 5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: 1,
+      rot: Math.random() * Math.PI,
+      vRot: (Math.random() - 0.5) * 0.3
+    });
+  }
+}
+
 function die() {
-  if (stageClearing) return;
+  if (stageClearing || isDying) return;
+  isDying = true;
+  deathTimer = 28;
+  shakeTime = 16;
+  shakeIntensity = 9;
   deaths++;
   updateHUD();
   playSound(140, 0.25, "sawtooth");
-  loadStage(currentStage);
+  spawnDeathParticles();
 }
 
 function nextStage() {
-  if (stageClearing) return;
+  if (stageClearing || isDying) return;
   stageClearing = true;
   doorOpenProgress = 0;
   player.vx = 0;
   player.vy = 0;
   playWinSound();
 
+  if (currentStage < 40) {
+    saveUnlockedStage(currentStage + 1);
+  } else {
+    saveUnlockedStage(40);
+  }
+
   setTimeout(() => {
     stageClearing = false;
-    if (currentStage < 30) {
+    if (currentStage < 40) {
       currentStage++;
       updateHUD();
       loadStage(currentStage);
@@ -128,6 +232,7 @@ function nextStage() {
     }
   }, 750);
 }
+
 function loadStage(stage) {
   player.x = 60;
   player.y = 260;
@@ -139,11 +244,13 @@ function loadStage(stage) {
   player.jumpForce = -11.5;
   player.grounded = false;
 
+  isDying = false;
+  deathParticles = [];
   platforms = [];
   spikes = [];
   doors = [];
   saws = [];
-  trapState = { triggered: false, reversed: false, gravFlipped: false, lightsOut: false, fakeWin: false, teleCount: 0 };
+  trapState = { triggered: false, reversed: false, gravFlipped: false, lightsOut: false, fakeWin: false, teleCount: 0, shrunk: false };
 
   const dpad = document.querySelector(".dpad");
   if (dpad) dpad.style.flexDirection = "row";
@@ -209,31 +316,6 @@ function loadStage(stage) {
       break;
     case 11:
       platforms.push({ id: "p11", x: 0, y: 320, w: 800, h: 80, solid: true });
-      doors.push({ id: "d11", x: 690, y: 265, w: 36, h: 55, real: true });
-      break;
-    case 12:
-      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
-      spikes.push({ id: "s12_a", x: 520, y: 300, w: 30, h: 20, dir: "up" });
-      spikes.push({ id: "s12_b", x: 10, y: 300, w: 30, h: 20, dir: "up" });
-      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
-      break;
-    case 13:
-      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
-      spikes.push({ x: 320, y: 300, w: 40, h: 20, dir: "up" });
-      spikes.push({ id: "s13_top", x: 300, y: 30, w: 120, h: 25, dir: "down" });
-      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
-      break;
-    case 14:
-      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
-      platforms.push({ x: 330, y: 215, w: 140, h: 25, solid: true });
-      doors.push({ id: "d14_fake", x: 380, y: 160, w: 36, h: 55, real: false });
-      doors.push({ id: "d14_real", x: 690, y: 265, w: 36, h: 55, real: true });
-      break;
-    case 15:
-      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
-      platforms.push({ x: 480, y: 30, w: 90, h: 245, solid: true });
-      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
-      break;
     case 16:
       platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
       platforms.push({ id: "wall16", x: 600, y: 320, w: 35, h: 95, solid: true });
@@ -324,8 +406,73 @@ function loadStage(stage) {
       spikes.push({ x: 520, y: 300, w: 30, h: 20, dir: "up" });
       doors.push({ id: "d30", x: 710, y: 265, w: 36, h: 55, real: true });
       break;
+    case 31:
+      platforms.push({ x: 0, y: 320, w: 200, h: 80, solid: true });
+      platforms.push({ x: 245, y: 295, w: 95, h: 25, solid: false });
+      platforms.push({ x: 375, y: 285, w: 120, h: 25, solid: true });
+      platforms.push({ x: 575, y: 320, w: 225, h: 80, solid: true });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 32:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      spikes.push({ id: "s32_1", x: 240, y: 325, w: 35, h: 20, dir: "up" });
+      spikes.push({ id: "s32_2", x: 360, y: 325, w: 35, h: 20, dir: "up" });
+      spikes.push({ id: "s32_3", x: 480, y: 325, w: 35, h: 20, dir: "up" });
+      spikes.push({ id: "s32_4", x: 600, y: 325, w: 35, h: 20, dir: "up" });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 33:
+      platforms.push({ x: 0, y: 320, w: 290, h: 80, solid: true });
+      platforms.push({ x: 410, y: 320, w: 390, h: 80, solid: true });
+      spikes.push({ x: 540, y: 300, w: 35, h: 20, dir: "up" });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 34:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ id: "p34_step", x: 430, y: 225, w: 110, h: 20, solid: false, invisible: true });
+      platforms.push({ id: "p34_high", x: 590, y: 150, w: 180, h: 25, solid: true });
+      spikes.push({ id: "s34_trap", x: 260, y: 325, w: 60, h: 20, dir: "up" });
+      doors.push({ id: "d34", x: 270, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 35:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ id: "step35", x: 230, y: 230, w: 110, h: 20, solid: false, invisible: true });
+      platforms.push({ id: "plat35_top", x: 350, y: 210, w: 100, h: 20, solid: false, invisible: true });
+      spikes.push({ x: 375, y: 300, w: 35, h: 20, dir: "up" });
+      doors.push({ id: "d35_fake", x: 700, y: 265, w: 36, h: 55, real: false });
+      doors.push({ id: "d35_real", x: -100, y: 155, w: 36, h: 55, real: true });
+      break;
+    case 36:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      saws.push({ id: "saw36", x: 640, y: 315, r: 24, angle: 0 });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 37:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ x: 530, y: 30, w: 50, h: 245, solid: true });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 38:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ x: 270, y: 255, w: 25, h: 65, solid: true, invisible: true });
+      platforms.push({ x: 490, y: 245, w: 25, h: 75, solid: true, invisible: true });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 39:
+      platforms.push({ id: "p39_l", x: 0, y: 320, w: 340, h: 80, solid: true });
+      platforms.push({ x: 460, y: 320, w: 340, h: 80, solid: true });
+      saws.push({ id: "saw39", x: 560, y: -30, r: 24, angle: 0 });
+      doors.push({ x: 710, y: 30, w: 36, h: 55, real: true });
+      break;
+    case 40:
+      platforms.push({ x: 0, y: 320, w: 310, h: 80, solid: true });
+      platforms.push({ x: 400, y: 320, w: 400, h: 80, solid: true });
+      spikes.push({ x: 500, y: 300, w: 30, h: 20, dir: "up" });
+      doors.push({ id: "d40", x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
   }
 }
+
 function updateTraps() {
   switch (currentStage) {
     case 1:
@@ -377,56 +524,6 @@ function updateTraps() {
       break;
     case 8:
       let fakeD = doors.find(d => d.id === "fakedoor");
-      if (player.x > 580 && fakeD) { fakeD.x = -100; playSound(200, 0.2); }
-      break;
-    case 9:
-      if (player.x > 280 && !trapState.gravFlipped) {
-        trapState.gravFlipped = true; player.gravity = -0.55; player.jumpForce = 11.5; playSound(550, 0.2);
-      }
-      break;
-    case 10:
-      let p10_2 = platforms.find(p => p.id === "p10_2");
-      let s10 = spikes.find(s => s.id === "s10");
-      let d10 = doors.find(d => d.id === "d10");
-      if (player.x > 200 && p10_2 && p10_2.x < 390) { p10_2.x += 5; p10_2.w -= 5; }
-      if (player.x > 410 && s10 && s10.y > 300) s10.y -= 5;
-      if (player.x > 610 && d10 && d10.x > 550) d10.x -= 8;
-      break;
-    case 11:
-      let p11 = platforms.find(p => p.id === "p11");
-      if (player.x > 320 && p11 && p11.w > 480) p11.w -= 8;
-      break;
-    case 12:
-      let s12a = spikes.find(s => s.id === "s12_a");
-      let s12b = spikes.find(s => s.id === "s12_b");
-      if (player.x > 240) trapState.triggered = true;
-      if (trapState.triggered) {
-        if (s12a && s12a.x > 310) s12a.x -= 6;
-        if (s12b && s12b.x < 250) s12b.x += 5;
-      }
-      break;
-    case 13:
-      let s13 = spikes.find(s => s.id === "s13_top");
-      if (player.x > 260 && !player.grounded && s13 && s13.y < 135) s13.y += 12;
-      break;
-    case 14:
-      let d14f = doors.find(d => d.id === "d14_fake");
-      let d14r = doors.find(d => d.id === "d14_real");
-      if (player.x > 580 && !trapState.triggered) {
-        trapState.triggered = true; playSound(450, 0.15);
-        d14r.x = 380; d14r.y = 160; d14f.x = 690; d14f.y = 265;
-      }
-      break;
-    case 15:
-      if (player.x > 250 && player.x < 350 && player.grounded && !trapState.triggered) {
-        trapState.triggered = true;
-        player.w = 52;
-        player.h = 68;
-        player.y -= 32;
-        playSound(220, 0.2);
-        setTimeout(() => { if (currentStage === 15) die(); }, 1200);
-      }
-      break;
     case 16:
       let w16 = platforms.find(p => p.id === "wall16");
       if (player.x > 480 && w16 && w16.y > 225) w16.y -= 10;
@@ -540,14 +637,153 @@ function updateTraps() {
       }
       if (player.x > 610 && d30 && d30.x > 480) d30.x -= 8;
       break;
+    case 31:
+      break;
+    case 32:
+      let s32_1 = spikes.find(s => s.id === "s32_1");
+      let s32_2 = spikes.find(s => s.id === "s32_2");
+      let s32_3 = spikes.find(s => s.id === "s32_3");
+      let s32_4 = spikes.find(s => s.id === "s32_4");
+      if (player.x > 160 && s32_1 && s32_1.y > 300) s32_1.y -= 6;
+      if (player.x > 280 && s32_2 && s32_2.y > 300) s32_2.y -= 6;
+      if (player.x > 400 && s32_3 && s32_3.y > 300) s32_3.y -= 6;
+      if (player.x > 520 && s32_4 && s32_4.y > 300) s32_4.y -= 6;
+      break;
+    case 33:
+      if (player.x > 230 && !trapState.triggered) {
+        trapState.triggered = true;
+        player.gravity = 1.25;
+        playSound(200, 0.15);
+      }
+      if (player.x > 420 && trapState.triggered) {
+        player.gravity = 0.55;
+      }
+      break;
+    case 34:
+      let d34 = doors.find(d => d.id === "d34");
+      let s34 = spikes.find(s => s.id === "s34_trap");
+      let step34 = platforms.find(p => p.id === "p34_step");
+      if (player.x > 180 && !trapState.triggered) {
+        trapState.triggered = true;
+        playSound(520, 0.15);
+        if (d34) { d34.x = 710; d34.y = 95; }
+        if (step34) { step34.solid = true; step34.invisible = false; }
+      }
+      if (trapState.triggered && s34 && s34.y > 300) {
+        s34.y -= 6;
+      }
+      break;
+    case 35:
+      if (player.x > 540 && !trapState.triggered) {
+        trapState.triggered = true;
+        playSound(220, 0.25);
+        let fakeD = doors.find(d => d.id === "d35_fake");
+        let realD = doors.find(d => d.id === "d35_real");
+        let s35 = platforms.find(p => p.id === "step35");
+        let p35 = platforms.find(p => p.id === "plat35_top");
+        if (fakeD) fakeD.x = -100;
+        if (realD) realD.x = 382;
+        if (s35) { s35.solid = true; s35.invisible = false; }
+        if (p35) { p35.solid = true; p35.invisible = false; }
+      }
+      break;
+    case 36:
+      let saw36 = saws.find(s => s.id === "saw36");
+      if (saw36) {
+        saw36.angle += 0.3;
+        if (player.x > 160 && !trapState.triggered) trapState.triggered = true;
+        if (trapState.triggered) {
+          if (!trapState.reversed) {
+            saw36.x -= 7.5;
+            if (saw36.x <= 30) { trapState.reversed = true; playSound(400, 0.1); }
+          } else {
+            saw36.x += 8.2;
+          }
+        }
+      }
+      break;
+    case 37:
+      if (player.x > 360 && !trapState.triggered) {
+        trapState.triggered = true;
+        player.w = 50;
+        player.h = 66;
+        player.y -= 30;
+        playSound(240, 0.2);
+      }
+      if (trapState.triggered && !trapState.shrunk && (player.x < 80 || player.y <= 36)) {
+        trapState.shrunk = true;
+        player.w = 16;
+        player.h = 20;
+        player.y += 46;
+        playSound(650, 0.2);
+      }
+      break;
+    case 38:
+      break;
+    case 39:
+      let p39l = platforms.find(p => p.id === "p39_l");
+      let saw39 = saws.find(s => s.id === "saw39");
+      if (player.x > 220 && !trapState.gravFlipped) {
+        trapState.gravFlipped = true;
+        player.gravity = -0.55;
+        player.jumpForce = 11.5;
+        playSound(550, 0.2);
+      }
+      if (trapState.gravFlipped && p39l && p39l.w > 240) p39l.w -= 5;
+      if (player.x > 460 && saw39 && saw39.y < 110) {
+        saw39.y += 9;
+        saw39.angle += 0.25;
+      }
+      break;
+    case 40:
+      let d40 = doors.find(d => d.id === "d40");
+      if (player.x > 200 && !trapState.reversed) {
+        trapState.reversed = true;
+        trapState.lightsOut = true;
+        playSound(250, 0.2);
+      }
+      if (player.x > 430 && !trapState.triggered) {
+        trapState.triggered = true;
+        trapState.fakeWin = true;
+        playWinSound();
+        setTimeout(() => { trapState.fakeWin = false; }, 850);
+      }
+      if (d40 && Math.hypot(player.x - d40.x, player.y - d40.y) < 70 && trapState.teleCount < 1) {
+        trapState.teleCount++;
+        d40.x = 560;
+        playSound(500, 0.12);
+      }
+      break;
   }
 }
+
 function update() {
   animFrame++;
+
+  if (shakeTime > 0) {
+    shakeTime--;
+  }
+
+  if (isDying) {
+    for (let pt of deathParticles) {
+      pt.x += pt.vx;
+      pt.y += pt.vy;
+      pt.vy += 0.35;
+      pt.rot += pt.vRot;
+      pt.alpha = Math.max(0, deathTimer / 28);
+    }
+    deathTimer--;
+    if (deathTimer <= 0) {
+      loadStage(currentStage);
+    }
+    return;
+  }
+
   if (stageClearing) {
     if (doorOpenProgress < 1) doorOpenProgress += 0.08;
     return;
   }
+
   updateTraps();
 
   let moveL = trapState.reversed ? input.right : input.left;
@@ -598,7 +834,9 @@ function update() {
   if (player.y > canvas.height || player.y + player.h < -20) { die(); return; }
 
   for (let s of spikes) {
-    let hitbox = { x: s.x + 4, y: s.y + 4, w: s.w - 8, h: s.h - 4 };
+    let hitbox = s.dir === "up"
+      ? { x: s.x + 6, y: s.y + 6, w: s.w - 12, h: s.h - 6 }
+      : { x: s.x + 6, y: s.y, w: s.w - 12, h: s.h - 6 };
     if (rectIntersect(player, hitbox)) { die(); return; }
   }
 
@@ -616,8 +854,16 @@ function update() {
 function rectIntersect(r1, r2) {
   return !(r2.x >= r1.x + r1.w || r2.x + r2.w <= r1.x || r2.y >= r1.y + r1.h || r2.y + r2.h <= r1.y);
 }
+
 function draw() {
+  ctx.save();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (shakeTime > 0) {
+    const dx = (Math.random() - 0.5) * 2 * shakeIntensity;
+    const dy = (Math.random() - 0.5) * 2 * shakeIntensity;
+    ctx.translate(dx, dy);
+  }
 
   ctx.fillStyle = "#3b2016";
   for (let p of platforms) {
@@ -672,33 +918,45 @@ function draw() {
     }
   }
 
-  ctx.save();
-  if (stageClearing) {
-    let scale = Math.max(0, 1 - doorOpenProgress);
-    let centerX = player.x + player.w / 2;
-    let centerY = player.y + player.h / 2;
-    ctx.translate(centerX, centerY);
-    ctx.scale(scale, scale);
-    ctx.translate(-centerX, -centerY);
-  }
+  if (!isDying) {
+    ctx.save();
+    if (stageClearing) {
+      let scale = Math.max(0, 1 - doorOpenProgress);
+      let centerX = player.x + player.w / 2;
+      let centerY = player.y + player.h / 2;
+      ctx.translate(centerX, centerY);
+      ctx.scale(scale, scale);
+      ctx.translate(-centerX, -centerY);
+    }
 
-  ctx.fillStyle = "#1c0d08";
-  ctx.fillRect(player.x + 4, player.y, player.w - 8, player.h - 8);
-  ctx.fillStyle = "#f3a86b";
-  let eyeX = player.facing === 1 ? player.x + player.w - 13 : player.x + 7;
-  let eyeY = player.gravity > 0 ? player.y + 7 : player.y + player.h - 18;
-  ctx.fillRect(eyeX, eyeY, 4, 4);
+    ctx.fillStyle = "#1c0d08";
+    ctx.fillRect(player.x + 4, player.y, player.w - 8, player.h - 8);
+    ctx.fillStyle = "#f3a86b";
+    let eyeX = player.facing === 1 ? player.x + player.w - 13 : player.x + 7;
+    let eyeY = player.gravity > 0 ? player.y + 7 : player.y + player.h - 18;
+    ctx.fillRect(eyeX, eyeY, 4, 4);
 
-  ctx.fillStyle = "#1c0d08";
-  let legOffset = player.vx !== 0 && player.grounded ? Math.sin(animFrame * 0.4) * 5 : 0;
-  if (player.gravity > 0) {
-    ctx.fillRect(player.x + 6, player.y + player.h - 8 + legOffset, 5, 8);
-    ctx.fillRect(player.x + player.w - 11, player.y + player.h - 8 - legOffset, 5, 8);
+    ctx.fillStyle = "#1c0d08";
+    let legOffset = player.vx !== 0 && player.grounded ? Math.sin(animFrame * 0.4) * 5 : 0;
+    if (player.gravity > 0) {
+      ctx.fillRect(player.x + 6, player.y + player.h - 8 + legOffset, 5, 8);
+      ctx.fillRect(player.x + player.w - 11, player.y + player.h - 8 - legOffset, 5, 8);
+    } else {
+      ctx.fillRect(player.x + 6, player.y - legOffset, 5, 8);
+      ctx.fillRect(player.x + player.w - 11, player.y + legOffset, 5, 8);
+    }
+    ctx.restore();
   } else {
-    ctx.fillRect(player.x + 6, player.y - legOffset, 5, 8);
-    ctx.fillRect(player.x + player.w - 11, player.y + legOffset, 5, 8);
+    for (let pt of deathParticles) {
+      ctx.save();
+      ctx.globalAlpha = pt.alpha;
+      ctx.translate(pt.x, pt.y);
+      ctx.rotate(pt.rot);
+      ctx.fillStyle = pt.color;
+      ctx.fillRect(-pt.size / 2, -pt.size / 2, pt.size, pt.size);
+      ctx.restore();
+    }
   }
-  ctx.restore();
 
   if (trapState.lightsOut) {
     ctx.save();
@@ -719,8 +977,10 @@ function draw() {
     ctx.fillStyle = "#3b2016";
     ctx.font = "bold 22px Courier New";
     ctx.textAlign = "center";
-    ctx.fillText("ALL 30 STAGES CLEARED!", 400, 178);
+    ctx.fillText("ALL 40 STAGES CLEARED!", 400, 178);
   }
+
+  ctx.restore();
 }
 
 function gameLoop() {
@@ -745,3 +1005,16 @@ function bindTouchButton(btnId, controlKey) {
 bindTouchButton("btn-left", "left");
 bindTouchButton("btn-right", "right");
 bindTouchButton("btn-jump", "jump");
+
+window.addEventListener("keydown", (e) => {
+  if (e.code === "ArrowLeft" || e.code === "KeyA") input.left = true;
+  if (e.code === "ArrowRight" || e.code === "KeyD") input.right = true;
+  if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") input.jump = true;
+  if (e.code === "KeyR" && gameRunning && !stageClearing && !isDying) die();
+});
+
+window.addEventListener("keyup", (e) => {
+  if (e.code === "ArrowLeft" || e.code === "KeyA") input.left = false;
+  if (e.code === "ArrowRight" || e.code === "KeyD") input.right = false;
+  if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") input.jump = false;
+});
