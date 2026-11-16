@@ -316,6 +316,31 @@ function loadStage(stage) {
       break;
     case 11:
       platforms.push({ id: "p11", x: 0, y: 320, w: 800, h: 80, solid: true });
+      doors.push({ id: "d11", x: 690, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 12:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      spikes.push({ id: "s12_a", x: 520, y: 300, w: 30, h: 20, dir: "up" });
+      spikes.push({ id: "s12_b", x: 10, y: 300, w: 30, h: 20, dir: "up" });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 13:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      spikes.push({ x: 320, y: 300, w: 40, h: 20, dir: "up" });
+      spikes.push({ id: "s13_top", x: 300, y: 30, w: 120, h: 25, dir: "down" });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 14:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ x: 330, y: 215, w: 140, h: 25, solid: true });
+      doors.push({ id: "d14_fake", x: 380, y: 160, w: 36, h: 55, real: false });
+      doors.push({ id: "d14_real", x: 690, y: 265, w: 36, h: 55, real: true });
+      break;
+    case 15:
+      platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
+      platforms.push({ x: 480, y: 30, w: 90, h: 245, solid: true });
+      doors.push({ x: 710, y: 265, w: 36, h: 55, real: true });
+      break;
     case 16:
       platforms.push({ x: 0, y: 320, w: 800, h: 80, solid: true });
       platforms.push({ id: "wall16", x: 600, y: 320, w: 35, h: 95, solid: true });
@@ -472,7 +497,6 @@ function loadStage(stage) {
       break;
   }
 }
-
 function updateTraps() {
   switch (currentStage) {
     case 1:
@@ -524,6 +548,56 @@ function updateTraps() {
       break;
     case 8:
       let fakeD = doors.find(d => d.id === "fakedoor");
+      if (player.x > 580 && fakeD) { fakeD.x = -100; playSound(200, 0.2); }
+      break;
+    case 9:
+      if (player.x > 280 && !trapState.gravFlipped) {
+        trapState.gravFlipped = true; player.gravity = -0.55; player.jumpForce = 11.5; playSound(550, 0.2);
+      }
+      break;
+    case 10:
+      let p10_2 = platforms.find(p => p.id === "p10_2");
+      let s10 = spikes.find(s => s.id === "s10");
+      let d10 = doors.find(d => d.id === "d10");
+      if (player.x > 200 && p10_2 && p10_2.x < 390) { p10_2.x += 5; p10_2.w -= 5; }
+      if (player.x > 410 && s10 && s10.y > 300) s10.y -= 5;
+      if (player.x > 610 && d10 && d10.x > 550) d10.x -= 8;
+      break;
+    case 11:
+      let p11 = platforms.find(p => p.id === "p11");
+      if (player.x > 320 && p11 && p11.w > 480) p11.w -= 8;
+      break;
+    case 12:
+      let s12a = spikes.find(s => s.id === "s12_a");
+      let s12b = spikes.find(s => s.id === "s12_b");
+      if (player.x > 240) trapState.triggered = true;
+      if (trapState.triggered) {
+        if (s12a && s12a.x > 310) s12a.x -= 6;
+        if (s12b && s12b.x < 250) s12b.x += 5;
+      }
+      break;
+    case 13:
+      let s13 = spikes.find(s => s.id === "s13_top");
+      if (player.x > 260 && !player.grounded && s13 && s13.y < 135) s13.y += 12;
+      break;
+    case 14:
+      let d14f = doors.find(d => d.id === "d14_fake");
+      let d14r = doors.find(d => d.id === "d14_real");
+      if (player.x > 580 && !trapState.triggered) {
+        trapState.triggered = true; playSound(450, 0.15);
+        d14r.x = 380; d14r.y = 160; d14f.x = 690; d14f.y = 265;
+      }
+      break;
+    case 15:
+      if (player.x > 250 && player.x < 350 && player.grounded && !trapState.triggered) {
+        trapState.triggered = true;
+        player.w = 52;
+        player.h = 68;
+        player.y -= 32;
+        playSound(220, 0.2);
+        setTimeout(() => { if (currentStage === 15 && !isDying) die(); }, 1200);
+      }
+      break;
     case 16:
       let w16 = platforms.find(p => p.id === "wall16");
       if (player.x > 480 && w16 && w16.y > 225) w16.y -= 10;
@@ -756,7 +830,6 @@ function updateTraps() {
       break;
   }
 }
-
 function update() {
   animFrame++;
 
@@ -831,7 +904,10 @@ function update() {
     }
   }
 
-  if (player.y > canvas.height || player.y + player.h < -20) { die(); return; }
+  if (player.y > canvas.height || player.y + player.h < -20) {
+    die();
+    return;
+  }
 
   for (let s of spikes) {
     let hitbox = s.dir === "up"
@@ -867,7 +943,9 @@ function draw() {
 
   ctx.fillStyle = "#3b2016";
   for (let p of platforms) {
-    if (!p.invisible) ctx.fillRect(p.x, p.y, p.w, p.h);
+    if (!p.invisible) {
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+    }
   }
 
   ctx.fillStyle = "#3b2016";
@@ -920,24 +998,28 @@ function draw() {
 
   if (!isDying) {
     ctx.save();
+    let centerX = player.x + player.w / 2;
+    let centerY = player.y + player.h / 2;
+
     if (stageClearing) {
       let scale = Math.max(0, 1 - doorOpenProgress);
-      let centerX = player.x + player.w / 2;
-      let centerY = player.y + player.h / 2;
       ctx.translate(centerX, centerY);
       ctx.scale(scale, scale);
       ctx.translate(-centerX, -centerY);
     }
 
-    ctx.fillStyle = "#1c0d08";
+    const bodyColor = "#1c0d08";
+
+    ctx.fillStyle = bodyColor;
     ctx.fillRect(player.x + 4, player.y, player.w - 8, player.h - 8);
     ctx.fillStyle = "#f3a86b";
     let eyeX = player.facing === 1 ? player.x + player.w - 13 : player.x + 7;
     let eyeY = player.gravity > 0 ? player.y + 7 : player.y + player.h - 18;
     ctx.fillRect(eyeX, eyeY, 4, 4);
 
-    ctx.fillStyle = "#1c0d08";
-    let legOffset = player.vx !== 0 && player.grounded ? Math.sin(animFrame * 0.4) * 5 : 0;
+    ctx.fillStyle = bodyColor;
+    let isMoving = player.vx !== 0 && player.grounded;
+    let legOffset = isMoving ? Math.sin(animFrame * 0.45) * 5 : 0;
     if (player.gravity > 0) {
       ctx.fillRect(player.x + 6, player.y + player.h - 8 + legOffset, 5, 8);
       ctx.fillRect(player.x + player.w - 11, player.y + player.h - 8 - legOffset, 5, 8);
@@ -945,6 +1027,7 @@ function draw() {
       ctx.fillRect(player.x + 6, player.y - legOffset, 5, 8);
       ctx.fillRect(player.x + player.w - 11, player.y + legOffset, 5, 8);
     }
+
     ctx.restore();
   } else {
     for (let pt of deathParticles) {
@@ -1012,7 +1095,6 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") input.jump = true;
   if (e.code === "KeyR" && gameRunning && !stageClearing && !isDying) die();
 });
-
 window.addEventListener("keyup", (e) => {
   if (e.code === "ArrowLeft" || e.code === "KeyA") input.left = false;
   if (e.code === "ArrowRight" || e.code === "KeyD") input.right = false;
