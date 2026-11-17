@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tl">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -16,9 +16,52 @@
     <div class="title-box">
       <h1>Not A Troll Game (Totally Safe)</h1>
       <p class="dev-credit">by Migz</p>
+      <div id="active-char-badge" class="active-badge">PLAYER: MIGUEL [DEV]</div>
       <div class="menu-buttons">
         <button id="play-btn" class="ld-btn">PLAY</button>
         <button id="stages-btn" class="ld-btn secondary-btn">STAGES</button>
+        <button id="customize-btn" class="ld-btn secondary-btn">CUSTOMIZE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARACTER CUSTOMIZATION MODAL -->
+  <div id="customize-modal" class="hidden">
+    <div class="title-box custom-box">
+      <h2>CHARACTER CUSTOMIZATION</h2>
+      <p class="stage-sub">Piliin at i-customize ang character mo</p>
+
+      <div class="custom-layout">
+        <div class="preview-panel">
+          <canvas id="preview-canvas" width="110" height="110"></canvas>
+          <div id="selected-char-name" class="char-title">MIGUEL [DEV]</div>
+        </div>
+
+        <div class="custom-controls">
+          <div class="control-group">
+            <label>CHARACTER:</label>
+            <div id="preset-list" class="option-grid"></div>
+          </div>
+
+          <div class="control-group">
+            <label>BODY COLOR:</label>
+            <div id="color-list" class="swatch-row"></div>
+          </div>
+
+          <div class="control-group">
+            <label>EYE COLOR:</label>
+            <div id="eye-list" class="swatch-row"></div>
+          </div>
+
+          <div class="control-group">
+            <label>ACCESSORY:</label>
+            <div id="hat-list" class="option-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-buttons">
+        <button id="save-custom-btn" class="ld-btn">EQUIP & BACK</button>
       </div>
     </div>
   </div>
@@ -42,8 +85,9 @@
         <button id="reset-btn" class="hud-btn">↻</button>
       </div>
       <div class="hud-right">
-        <span>STAGE <strong id="lvl-display">1</strong>/40</span>
-        <span>DEATHS: <strong id="death-display">0</strong></span>
+        <span id="hud-char-display">MIGUEL [DEV]</span>
+        <span>STAGE <b id="lvl-display">1</b>/40</span>
+        <span>DEATHS: <b id="death-display">0</b></span>
       </div>
     </div>
 
@@ -54,7 +98,7 @@
         <button id="btn-left" class="ctrl-btn">◀</button>
         <button id="btn-right" class="ctrl-btn">▶</button>
       </div>
-      <button id="btn-jump" class="ctrl-btn jump-btn">▲</button>
+      <button id="btn-jump" class="ctrl-btn">▲</button>
     </div>
   </div>
 
@@ -62,7 +106,7 @@
   <div id="victory-modal" class="hidden">
     <div class="title-box">
       <h1>ALL 40 STAGES CLEARED!</h1>
-      <p class="dev-credit">Total Deaths: <strong id="final-deaths">0</strong></p>
+      <p class="dev-credit">Total Deaths: <b id="final-deaths">0</b></p>
       <p class="dev-credit">Not A Troll Game (Totally Safe) by Migz</p>
       <div class="menu-buttons">
         <button id="replay-btn" class="ld-btn">PLAY AGAIN</button>

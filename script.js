@@ -6,10 +6,13 @@ const gameScreen = document.getElementById("game-screen");
 const victoryModal = document.getElementById("victory-modal");
 const stageSelectModal = document.getElementById("stage-select-modal");
 const stageGrid = document.getElementById("stage-grid");
+const customizeModal = document.getElementById("customize-modal");
 
 const playBtn = document.getElementById("play-btn");
 const replayBtn = document.getElementById("replay-btn");
 const stagesBtn = document.getElementById("stages-btn");
+const customizeBtn = document.getElementById("customize-btn");
+const saveCustomBtn = document.getElementById("save-custom-btn");
 const hudStagesBtn = document.getElementById("hud-stages-btn");
 const winStagesBtn = document.getElementById("win-stages-btn");
 const closeStagesBtn = document.getElementById("close-stages-btn");
@@ -19,6 +22,243 @@ const resetBtn = document.getElementById("reset-btn");
 const lvlDisplay = document.getElementById("lvl-display");
 const deathDisplay = document.getElementById("death-display");
 const finalDeathsDisplay = document.getElementById("final-deaths");
+const activeCharBadge = document.getElementById("active-char-badge");
+const hudCharDisplay = document.getElementById("hud-char-display");
+
+const previewCanvas = document.getElementById("preview-canvas");
+const pCtx = previewCanvas.getContext("2d");
+const selectedCharNameEl = document.getElementById("selected-char-name");
+const presetListEl = document.getElementById("preset-list");
+const colorListEl = document.getElementById("color-list");
+const eyeListEl = document.getElementById("eye-list");
+const hatListEl = document.getElementById("hat-list");
+
+const CHARACTER_PRESETS = [
+  { id: "miguel", name: "Miguel", isDev: true, body: "#1c0d08", eye: "#ffd700", hat: "crown" },
+  { id: "karra", name: "Karra", isDev: false, body: "#7a1c4b", eye: "#ffb6c1", hat: "headband" },
+  { id: "oscar", name: "Oscar", isDev: false, body: "#1b3b6f", eye: "#7dd3fc", hat: "cap" },
+  { id: "macha", name: "Macha", isDev: false, body: "#2d5a27", eye: "#bef264", hat: "glasses" },
+  { id: "jhanster", name: "Jhanster", isDev: false, body: "#8c2d19", eye: "#fde047", hat: "horns" },
+  { id: "yana", name: "Yana", isDev: false, body: "#4c1d95", eye: "#f0abfc", hat: "headband" },
+  { id: "kael", name: "Kael", isDev: false, body: "#0f4c5c", eye: "#ffffff", hat: "cap" },
+  { id: "zia", name: "Zia", isDev: false, body: "#9a3412", eye: "#fed7aa", hat: "glasses" },
+  { id: "brix", name: "Brix", isDev: false, body: "#27272a", eye: "#ef4444", hat: "horns" },
+  { id: "tala", name: "Tala", isDev: false, body: "#78350f", eye: "#fef08a", hat: "none" }
+];
+
+const BODY_COLORS = [
+  "#1c0d08", "#7a1c4b", "#1b3b6f", "#2d5a27", "#8c2d19",
+  "#4c1d95", "#0f4c5c", "#9a3412", "#27272a", "#b32419"
+];
+
+const EYE_COLORS = [
+  "#f3a86b", "#ffd700", "#ffffff", "#7dd3fc",
+  "#bef264", "#ffb6c1", "#ef4444", "#f0abfc"
+];
+
+const HAT_OPTIONS = [
+  { id: "none", label: "None" },
+  { id: "crown", label: "Dev Crown" },
+  { id: "cap", label: "Cap" },
+  { id: "headband", label: "Headband" },
+  { id: "glasses", label: "Glasses" },
+  { id: "horns", label: "Horns" }
+];
+
+let savedCustom = null;
+try {
+  savedCustom = JSON.parse(localStorage.getItem("ntg_character_custom"));
+} catch (e) {
+  savedCustom = null;
+}
+
+let currentChar = savedCustom || {
+  id: "miguel",
+  name: "Miguel",
+  isDev: true,
+  body: "#1c0d08",
+  eye: "#ffd700",
+  hat: "crown"
+};
+
+function getFormattedCharLabel(charObj) {
+  return charObj.isDev
+    ? `${charObj.name.toUpperCase()} [DEV]`
+    : charObj.name.toUpperCase();
+}
+
+function saveCharacterCustom() {
+  localStorage.setItem("ntg_character_custom", JSON.stringify(currentChar));
+  updateCharacterBadges();
+}
+
+function updateCharacterBadges() {
+  const label = getFormattedCharLabel(currentChar);
+  if (activeCharBadge) {
+    activeCharBadge.innerText = `PLAYER: ${label}`;
+    activeCharBadge.style.borderColor = currentChar.isDev ? "#b32419" : "#26120b";
+    activeCharBadge.style.color = currentChar.isDev ? "#ffd700" : "#f3a86b";
+  }
+  if (hudCharDisplay) {
+    hudCharDisplay.innerText = label;
+    if (currentChar.isDev) {
+      hudCharDisplay.classList.add("dev-hud");
+    } else {
+      hudCharDisplay.classList.remove("dev-hud");
+    }
+  }
+}
+
+function renderCharacterSprite(targetCtx, x, y, w, h, facing, gravDir, isMoving, frameCount, styleObj) {
+  targetCtx.fillStyle = styleObj.body;
+  targetCtx.fillRect(x + 4, y, w - 8, h - 8);
+
+  targetCtx.fillStyle = styleObj.eye;
+  const eyeX = facing === 1 ? x + w - 13 : x + 7;
+  const eyeY = gravDir > 0 ? y + 7 : y + h - 18;
+  targetCtx.fillRect(eyeX, eyeY, 4, 4);
+
+  if (styleObj.hat === "glasses") {
+    targetCtx.fillStyle = "#111111";
+    const glassY = gravDir > 0 ? y + 6 : y + h - 19;
+    targetCtx.fillRect(x + 5, glassY, w - 10, 6);
+    targetCtx.fillStyle = styleObj.eye;
+    targetCtx.fillRect(eyeX, glassY + 1, 4, 4);
+  } else if (styleObj.hat === "headband") {
+    targetCtx.fillStyle = "#d93829";
+    const bandY = gravDir > 0 ? y + 3 : y + h - 14;
+    targetCtx.fillRect(x + 4, bandY, w - 8, 4);
+  } else if (styleObj.hat === "cap") {
+    targetCtx.fillStyle = "#26120b";
+    if (gravDir > 0) {
+      targetCtx.fillRect(x + 3, y - 4, w - 6, 5);
+      const brimX = facing === 1 ? x + w - 8 : x - 2;
+      targetCtx.fillRect(brimX, y - 1, 10, 3);
+    } else {
+      targetCtx.fillRect(x + 3, y + h - 9, w - 6, 5);
+      const brimX = facing === 1 ? x + w - 8 : x - 2;
+      targetCtx.fillRect(brimX, y + h - 11, 10, 3);
+    }
+  } else if (styleObj.hat === "crown") {
+    targetCtx.fillStyle = "#ffd700";
+    if (gravDir > 0) {
+      targetCtx.fillRect(x + 5, y - 5, w - 10, 5);
+      targetCtx.fillRect(x + 5, y - 8, 3, 3);
+      targetCtx.fillRect(x + w / 2 - 1.5, y - 9, 3, 4);
+      targetCtx.fillRect(x + w - 8, y - 8, 3, 3);
+    } else {
+      targetCtx.fillRect(x + 5, y + h - 8, w - 10, 5);
+      targetCtx.fillRect(x + 5, y + h - 3, 3, 3);
+      targetCtx.fillRect(x + w / 2 - 1.5, y + h - 3, 3, 4);
+      targetCtx.fillRect(x + w - 8, y + h - 3, 3, 3);
+    }
+  } else if (styleObj.hat === "horns") {
+    targetCtx.fillStyle = "#b32419";
+    if (gravDir > 0) {
+      targetCtx.fillRect(x + 5, y - 6, 4, 6);
+      targetCtx.fillRect(x + w - 9, y - 6, 4, 6);
+    } else {
+      targetCtx.fillRect(x + 5, y + h - 8, 4, 6);
+      targetCtx.fillRect(x + w - 9, y + h - 8, 4, 6);
+    }
+  }
+
+  targetCtx.fillStyle = styleObj.body;
+  const legOffset = isMoving ? Math.sin(frameCount * 0.45) * 5 : 0;
+  if (gravDir > 0) {
+    targetCtx.fillRect(x + 6, y + h - 8 + legOffset, 5, 8);
+    targetCtx.fillRect(x + w - 11, y + h - 8 - legOffset, 5, 8);
+  } else {
+    targetCtx.fillRect(x + 6, y - legOffset, 5, 8);
+    targetCtx.fillRect(x + w - 11, y + legOffset, 5, 8);
+  }
+}
+
+function drawPreviewCharacter() {
+  if (!pCtx) return;
+  pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+  pCtx.fillStyle = "#3b2016";
+  pCtx.fillRect(0, 88, previewCanvas.width, 22);
+
+  pCtx.save();
+  pCtx.translate(27, 16);
+  pCtx.scale(2, 2);
+  renderCharacterSprite(pCtx, 0, 0, 28, 36, 1, 1, false, 0, currentChar);
+  pCtx.restore();
+
+  selectedCharNameEl.innerText = getFormattedCharLabel(currentChar);
+  if (currentChar.isDev) {
+    selectedCharNameEl.classList.add("is-dev");
+  } else {
+    selectedCharNameEl.classList.remove("is-dev");
+  }
+}
+
+function renderCustomizeUI() {
+  presetListEl.innerHTML = "";
+  CHARACTER_PRESETS.forEach((preset) => {
+    const btn = document.createElement("button");
+    btn.className = "opt-btn";
+    if (preset.isDev) btn.classList.add("dev-opt");
+    if (currentChar.id === preset.id) btn.classList.add("selected");
+    btn.innerText = preset.isDev ? `${preset.name} [DEV]` : preset.name;
+    btn.addEventListener("click", () => {
+      playSound(480, 0.06);
+      currentChar = { ...preset };
+      renderCustomizeUI();
+      drawPreviewCharacter();
+    });
+    presetListEl.appendChild(btn);
+  });
+
+  colorListEl.innerHTML = "";
+  BODY_COLORS.forEach((hex) => {
+    const sw = document.createElement("button");
+    sw.className = "swatch-btn";
+    sw.style.backgroundColor = hex;
+    if (currentChar.body === hex) sw.classList.add("selected");
+    sw.addEventListener("click", () => {
+      playSound(520, 0.05);
+      currentChar.body = hex;
+      renderCustomizeUI();
+      drawPreviewCharacter();
+    });
+    colorListEl.appendChild(sw);
+  });
+
+  eyeListEl.innerHTML = "";
+  EYE_COLORS.forEach((hex) => {
+    const sw = document.createElement("button");
+    sw.className = "swatch-btn";
+    sw.style.backgroundColor = hex;
+    if (currentChar.eye === hex) sw.classList.add("selected");
+    sw.addEventListener("click", () => {
+      playSound(560, 0.05);
+      currentChar.eye = hex;
+      renderCustomizeUI();
+      drawPreviewCharacter();
+    });
+    eyeListEl.appendChild(sw);
+  });
+
+  hatListEl.innerHTML = "";
+  HAT_OPTIONS.forEach((hat) => {
+    const btn = document.createElement("button");
+    btn.className = "opt-btn";
+    if (currentChar.hat === hat.id) btn.classList.add("selected");
+    btn.innerText = hat.label;
+    btn.addEventListener("click", () => {
+      playSound(600, 0.05);
+      currentChar.hat = hat.id;
+      renderCustomizeUI();
+      drawPreviewCharacter();
+    });
+    hatListEl.appendChild(btn);
+  });
+
+  drawPreviewCharacter();
+}
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playSound(freq, duration, type = "square") {
@@ -118,6 +358,7 @@ function startAtStage(stageNumber) {
   titleScreen.classList.add("hidden");
   victoryModal.classList.add("hidden");
   stageSelectModal.classList.add("hidden");
+  customizeModal.classList.add("hidden");
   gameScreen.classList.remove("hidden");
   input.left = false;
   input.right = false;
@@ -127,6 +368,7 @@ function startAtStage(stageNumber) {
   stageClearing = false;
   isDying = false;
   deathParticles = [];
+  updateCharacterBadges();
   updateHUD();
   loadStage(currentStage);
   if (!gameRunning) {
@@ -145,6 +387,18 @@ stagesBtn.addEventListener("click", openStageSelect);
 hudStagesBtn.addEventListener("click", openStageSelect);
 winStagesBtn.addEventListener("click", openStageSelect);
 
+customizeBtn.addEventListener("click", () => {
+  playSound(480, 0.08);
+  renderCustomizeUI();
+  customizeModal.classList.remove("hidden");
+});
+
+saveCustomBtn.addEventListener("click", () => {
+  playSound(620, 0.1);
+  saveCharacterCustom();
+  customizeModal.classList.add("hidden");
+});
+
 closeStagesBtn.addEventListener("click", () => {
   playSound(350, 0.08);
   stageSelectModal.classList.add("hidden");
@@ -157,6 +411,7 @@ menuBtn.addEventListener("click", () => {
   gameScreen.classList.add("hidden");
   victoryModal.classList.add("hidden");
   stageSelectModal.classList.add("hidden");
+  customizeModal.classList.add("hidden");
   titleScreen.classList.remove("hidden");
 });
 
@@ -173,7 +428,7 @@ function updateHUD() {
 
 function spawnDeathParticles() {
   deathParticles = [];
-  const colors = ["#1c0d08", "#1c0d08", "#b32419", "#d93829", "#3b2016"];
+  const colors = [currentChar.body, currentChar.body, "#b32419", "#d93829", currentChar.eye];
   const centerX = player.x + player.w / 2;
   const centerY = player.y + player.h / 2;
 
@@ -830,6 +1085,7 @@ function updateTraps() {
       break;
   }
 }
+
 function update() {
   animFrame++;
 
@@ -1008,25 +1264,19 @@ function draw() {
       ctx.translate(-centerX, -centerY);
     }
 
-    const bodyColor = "#1c0d08";
-
-    ctx.fillStyle = bodyColor;
-    ctx.fillRect(player.x + 4, player.y, player.w - 8, player.h - 8);
-    ctx.fillStyle = "#f3a86b";
-    let eyeX = player.facing === 1 ? player.x + player.w - 13 : player.x + 7;
-    let eyeY = player.gravity > 0 ? player.y + 7 : player.y + player.h - 18;
-    ctx.fillRect(eyeX, eyeY, 4, 4);
-
-    ctx.fillStyle = bodyColor;
     let isMoving = player.vx !== 0 && player.grounded;
-    let legOffset = isMoving ? Math.sin(animFrame * 0.45) * 5 : 0;
-    if (player.gravity > 0) {
-      ctx.fillRect(player.x + 6, player.y + player.h - 8 + legOffset, 5, 8);
-      ctx.fillRect(player.x + player.w - 11, player.y + player.h - 8 - legOffset, 5, 8);
-    } else {
-      ctx.fillRect(player.x + 6, player.y - legOffset, 5, 8);
-      ctx.fillRect(player.x + player.w - 11, player.y + legOffset, 5, 8);
-    }
+    renderCharacterSprite(
+      ctx,
+      player.x,
+      player.y,
+      player.w,
+      player.h,
+      player.facing,
+      player.gravity,
+      isMoving,
+      animFrame,
+      currentChar
+    );
 
     ctx.restore();
   } else {
@@ -1100,3 +1350,5 @@ window.addEventListener("keyup", (e) => {
   if (e.code === "ArrowRight" || e.code === "KeyD") input.right = false;
   if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") input.jump = false;
 });
+
+updateCharacterBadges();

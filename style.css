@@ -58,17 +58,17 @@ body {
 .title-box {
   background-color: #f3a86b;
   color: #3b2016;
-  padding: 26px 36px;
+  padding: 24px 32px;
   border: 6px solid #26120b;
   text-align: center;
   box-shadow: 0 8px 0 #26120b;
-  max-width: 92vw;
+  max-width: 94vw;
 }
 
 .title-box h1 {
   font-size: 24px;
   font-weight: 900;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -76,12 +76,24 @@ body {
 .dev-credit {
   font-size: 16px;
   font-weight: bold;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.active-badge {
+  display: inline-block;
+  background-color: #26120b;
+  color: #f3a86b;
+  padding: 5px 14px;
+  font-size: 14px;
+  font-weight: 900;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  letter-spacing: 0.5px;
 }
 
 .menu-buttons {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -90,8 +102,8 @@ body {
   background-color: #3b2016;
   color: #f3a86b;
   border: none;
-  padding: 12px 30px;
-  font-size: 20px;
+  padding: 11px 24px;
+  font-size: 18px;
   font-weight: bold;
   font-family: inherit;
   cursor: pointer;
@@ -105,6 +117,143 @@ body {
 
 .secondary-btn {
   background-color: #5c3324;
+}
+
+/* CHARACTER CUSTOMIZATION MODAL */
+#customize-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(28, 13, 8, 0.92);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 65;
+}
+
+.custom-box {
+  padding: 14px 20px;
+  width: 740px;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.custom-box h2 {
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 2px;
+}
+
+.custom-layout {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 12px;
+  align-items: stretch;
+  max-height: 62vh;
+}
+
+.preview-panel {
+  background-color: #e08e4b;
+  border: 4px solid #26120b;
+  padding: 10px;
+  width: 165px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+#preview-canvas {
+  background-color: #f3a86b;
+  border: 3px solid #26120b;
+  border-radius: 4px;
+}
+
+.char-title {
+  background-color: #26120b;
+  color: #f3a86b;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-weight: 900;
+  width: 100%;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.char-title.is-dev {
+  background-color: #b32419;
+  color: #ffffff;
+  border: 2px solid #26120b;
+}
+
+.custom-controls {
+  flex: 1;
+  overflow-y: auto;
+  text-align: left;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.control-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 4px;
+  color: #26120b;
+}
+
+.option-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.opt-btn {
+  background-color: #3b2016;
+  color: #f3a86b;
+  border: 2px solid #26120b;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.opt-btn.selected {
+  background-color: #2e5a27;
+  color: #ffffff;
+  border-color: #1c0d08;
+}
+
+.opt-btn.dev-opt.selected {
+  background-color: #b32419;
+  color: #ffffff;
+}
+
+.swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.swatch-btn {
+  width: 26px;
+  height: 26px;
+  border: 3px solid #26120b;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.swatch-btn.selected {
+  outline: 3px solid #ffffff;
+  transform: scale(1.1);
 }
 
 /* STAGE SELECT MODAL */
@@ -136,7 +285,7 @@ body {
 .stage-sub {
   font-size: 13px;
   font-weight: bold;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .stage-grid {
@@ -193,7 +342,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
   color: #ffffff;
   text-shadow: 2px 2px 0 #1c0d08, -1px -1px 0 #1c0d08, 1px -1px 0 #1c0d08, -1px 1px 0 #1c0d08;
@@ -209,9 +358,14 @@ body {
 
 #hud span {
   background-color: rgba(28, 13, 8, 0.8);
-  padding: 5px 12px;
+  padding: 5px 10px;
   border: 2px solid #f3a86b;
   border-radius: 6px;
+}
+
+#hud span.dev-hud {
+  border-color: #ff4d4d;
+  color: #ffd700;
 }
 
 .hud-btn {
